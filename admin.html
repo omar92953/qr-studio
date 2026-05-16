@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR Studio — Admin</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000;--bg-2:#1c1c1e;--bg-3:#2c2c2e;--bg-4:#3a3a3c;
+  --label:#fff;--label-2:rgba(235,235,245,.6);--label-3:rgba(235,235,245,.3);
+  --sep:rgba(84,84,88,.65);--sep-o:#38383a;
+  --tint:#ff9f0a;--red:#ff453a;--green:#32d74b;
+  --r-lg:16px;--r-md:12px;--r-sm:8px;
+}
+body{background:var(--bg);color:var(--label);font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  min-height:100vh;padding:24px}
+h1{font-size:28px;font-weight:700;margin-bottom:4px}
+.subtitle{font-size:15px;color:var(--label-2);margin-bottom:24px}
+.header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.btn{padding:9px 18px;border-radius:var(--r-sm);font-size:14px;font-weight:500;
+  cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.btn:active{opacity:.7}
+.btn-primary{background:var(--tint);color:#000}
+.btn-secondary{background:var(--bg-3);color:var(--label)}
+.btn-danger{background:rgba(255,69,58,.15);color:var(--red)}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+/* Stats bar */
+.stats-bar{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}
+.stat-card{background:var(--bg-2);border-radius:var(--r-md);padding:16px 20px;flex:1;min-width:120px}
+.stat-value{font-size:28px;font-weight:700;color:var(--tint)}
+.stat-label{font-size:13px;color:var(--label-2);margin-top:2px}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-input{background:var(--bg-2);border:.5px solid var(--sep-o);border-radius:var(--r-sm);
+  padding:8px 12px;color:var(--label);font-size:14px;font-family:inherit;width:220px}
+.filter-input:focus{outline:none;border-color:var(--tint)}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:.5px solid var(--sep);margin-bottom:20px}
+.tab-btn{padding:10px 20px;font-size:15px;font-weight:500;color:var(--label-2);
+  cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;
+  transition:all .15s;margin-bottom:-1px}
+.tab-btn.active{color:var(--tint);border-bottom-color:var(--tint)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;border-radius:var(--r-lg);border:.5px solid var(--sep-o);margin-bottom:28px}
+table{width:100%;border-collapse:collapse;min-width:600px}
+thead{background:var(--bg-2)}
+th{padding:12px 16px;text-align:left;font-size:12px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--label-2);
+  border-bottom:.5px solid var(--sep-o)}
+td{padding:12px 16px;font-size:14px;border-bottom:.5px solid var(--sep-o);
+  vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg-2)}
+.thumb-cell{width:56px}
+.thumb-img{width:48px;height:48px;object-fit:contain;background:#fff;
+  border-radius:var(--r-sm);padding:4px}
+.thumb-placeholder{width:48px;height:48px;background:var(--bg-3);
+  border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;
+  color:var(--label-3);font-size:10px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.badge-url{background:rgba(255,159,10,.15);color:var(--tint)}
+.badge-text{background:rgba(50,215,75,.12);color:var(--green)}
+.badge-email{background:rgba(64,203,224,.12);color:#40cbe0}
+.badge-phone{background:rgba(255,55,95,.12);color:#ff375f}
+.badge-wifi{background:rgba(255,214,10,.12);color:var(--yellow,#ffd60a)}
+.badge-vcard{background:rgba(120,120,128,.2);color:var(--label-2)}
+.content-cell{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--label-2)}
+.mono{font-family:ui-monospace,monospace;font-size:12px}
+.empty-row td{text-align:center;padding:40px;color:var(--label-3)}
+.loading{text-align:center;padding:40px;color:var(--label-2)}
+
+/* Toast */
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);
+  background:var(--bg-4);color:var(--label);padding:10px 20px;border-radius:999px;
+  font-size:14px;font-weight:500;z-index:300;transition:transform .3s ease;
+  white-space:nowrap;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="header-row">
+  <div>
+    <h1>QR Studio Admin</h1>
+    <div class="subtitle">Private dashboard — Omar only</div>
+  </div>
+  <button class="btn btn-primary" onclick="loadAll()">↻ Refresh</button>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat-card"><div class="stat-value" id="stat-users">—</div><div class="stat-label">Total users</div></div>
+  <div class="stat-card"><div class="stat-value" id="stat-codes">—</div><div class="stat-label">QR codes saved</div></div>
+  <div class="stat-card"><div class="stat-value" id="stat-today">—</div><div class="stat-label">Created today</div></div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('users')">Users</button>
+  <button class="tab-btn" onclick="showTab('codes')">All Codes</button>
+</div>
+
+<!-- Users tab -->
+<div id="tab-users">
+  <div class="filter-bar">
+    <input class="filter-input" id="user-filter" type="text" placeholder="Filter by name or username…" oninput="renderUsers()">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Display name</th><th>Username</th><th>Codes</th><th>Joined</th>
+      </tr></thead>
+      <tbody id="users-tbody"><tr><td colspan="4" class="loading">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Codes tab -->
+<div id="tab-codes" style="display:none">
+  <div class="filter-bar">
+    <input class="filter-input" id="code-filter" type="text" placeholder="Filter by content or username…" oninput="renderCodes()">
+    <select class="filter-input" id="type-filter" onchange="renderCodes()" style="width:140px">
+      <option value="">All types</option>
+      <option value="url">URL</option>
+      <option value="text">Text</option>
+      <option value="email">Email</option>
+      <option value="phone">Phone</option>
+      <option value="wifi">WiFi</option>
+      <option value="vcard">vCard</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th class="thumb-cell">QR</th><th>Type</th><th>Content</th><th>User</th><th>Date</th><th></th>
+      </tr></thead>
+      <tbody id="codes-tbody"><tr><td colspan="6" class="loading">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_CONFIG = {
+  url: 'https://ygzarhxoyqngvrdizlev.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnemFyaHhveXFuZ3ZyZGl6bGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTYyMjAsImV4cCI6MjA5NDE5MjIyMH0.BVwdJn3TxQJtiH7643PRugfqXzLUijQNs3rQbAiVAN0'
+};
+
+let db = null;
+let allUsers = [];
+let allCodes = [];
+
+function initDb() {
+  if (db) return;
+  db = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+}
+
+async function loadAll() {
+  initDb();
+  await Promise.all([loadUsers(), loadCodes()]);
+  updateStats();
+}
+
+async function loadUsers() {
+  try {
+    const { data } = await db.from('qrstudio_users').select('*').order('created_at', { ascending: false });
+    allUsers = data || [];
+    renderUsers();
+  } catch(e) {
+    document.getElementById('users-tbody').innerHTML = `<tr><td colspan="4" class="empty-row">Error loading users</td></tr>`;
+  }
+}
+
+async function loadCodes() {
+  try {
+    const { data } = await db.from('qrstudio_codes').select('*').order('created_at', { ascending: false });
+    allCodes = data || [];
+    renderCodes();
+  } catch(e) {
+    document.getElementById('codes-tbody').innerHTML = `<tr><td colspan="6" class="empty-row">Error loading codes</td></tr>`;
+  }
+}
+
+function updateStats() {
+  document.getElementById('stat-users').textContent = allUsers.length;
+  document.getElementById('stat-codes').textContent = allCodes.length;
+  const today = new Date().toISOString().slice(0,10);
+  const todayCount = allCodes.filter(c => (c.created_at||'').startsWith(today)).length;
+  document.getElementById('stat-today').textContent = todayCount;
+}
+
+function renderUsers() {
+  const q = (document.getElementById('user-filter').value||'').toLowerCase();
+  const filtered = allUsers.filter(u =>
+    !q || (u.display_name||'').toLowerCase().includes(q) || (u.username||'').toLowerCase().includes(q)
+  );
+  const codesByUser = {};
+  allCodes.forEach(c => { codesByUser[c.username] = (codesByUser[c.username]||0)+1; });
+
+  if (!filtered.length) {
+    document.getElementById('users-tbody').innerHTML = `<tr><td colspan="4" class="empty-row">No users found</td></tr>`;
+    return;
+  }
+  document.getElementById('users-tbody').innerHTML = filtered.map(u => `
+    <tr>
+      <td style="font-weight:500">${escHtml(u.display_name||'—')}</td>
+      <td><span class="mono">${escHtml(u.username)}</span></td>
+      <td style="color:var(--tint);font-weight:600">${codesByUser[u.username]||0}</td>
+      <td style="color:var(--label-2)">${fmtDate(u.created_at)}</td>
+    </tr>`).join('');
+}
+
+function renderCodes() {
+  const q = (document.getElementById('code-filter').value||'').toLowerCase();
+  const typeF = document.getElementById('type-filter').value;
+  const filtered = allCodes.filter(c =>
+    (!q || (c.content||'').toLowerCase().includes(q) || (c.username||'').toLowerCase().includes(q)) &&
+    (!typeF || c.content_type === typeF)
+  );
+
+  if (!filtered.length) {
+    document.getElementById('codes-tbody').innerHTML = `<tr><td colspan="6" class="empty-row">No codes found</td></tr>`;
+    return;
+  }
+  document.getElementById('codes-tbody').innerHTML = filtered.map(c => `
+    <tr>
+      <td class="thumb-cell">
+        ${c.thumbnail
+          ? `<img class="thumb-img" src="${c.thumbnail}" alt="QR">`
+          : `<div class="thumb-placeholder">QR</div>`}
+      </td>
+      <td><span class="badge badge-${c.content_type||'url'}">${c.content_type||'url'}</span></td>
+      <td class="content-cell">${escHtml(c.content)}</td>
+      <td><span class="mono" style="color:var(--label-2)">${escHtml(c.username)}</span></td>
+      <td style="color:var(--label-2);white-space:nowrap">${fmtDate(c.created_at)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteCode('${c.id}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+async function deleteCode(id) {
+  if (!confirm('Delete this QR code?')) return;
+  try {
+    await db.from('qrstudio_codes').delete().eq('id', id);
+    allCodes = allCodes.filter(c => c.id !== id);
+    renderCodes();
+    updateStats();
+    showToast('Deleted');
+  } catch(e) { showToast('Error deleting'); }
+}
+
+function showTab(tab) {
+  document.getElementById('tab-users').style.display = tab==='users' ? '' : 'none';
+  document.getElementById('tab-codes').style.display = tab==='codes' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i) =>
+    b.classList.toggle('active', (i===0 && tab==='users') || (i===1 && tab==='codes')));
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString();
+}
+
+let _toast;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toast);
+  _toast = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+loadAll();
+</script>
+</body>
+</html>
